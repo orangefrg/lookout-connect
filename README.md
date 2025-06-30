@@ -1,2 +1,3 @@
-# lookout-connect
-Monitor cross-connectivity and health of VPS via SSH
+TODO:
+
+Make curl check (for geoblocked resources)
