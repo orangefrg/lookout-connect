@@ -1,9 +1,9 @@
 nodes:
-  - name: "alpha"
-    ip: "1.1.1.1"
-    port: 22
-    user: "user_a"
-    id_file: "/home/my_user/.ssh/id_rsa"
+  - name: "alpha" # name of the node
+    ip: "1.1.1.1" # ip of the node
+    port: 22 # port of the node
+    user: "user_a" # user of the node
+    id_file: "/home/my_user/.ssh/id_rsa" # id file of the node
   - name: "bravo"
     ip: "2.2.2.2"
     port: 8022
@@ -12,16 +12,31 @@ nodes:
 
 connectivity:
   icmp:
-    - "1.1.1.1"
-    - "2.2.2.2"
+    - name: "Host1" # name of the host
+      address: "1.1.1.1" # address of the host
+    - name: "Host2"
+      address: "2.2.2.2"
   tcp:
-    - address: "1.1.1.1"
-      port: 22
-    - address: "2.2.2.2"
+    - name: "Host1" # name of the host
+      address: "1.1.1.1" # address of the host
+      port: 22 # port of the host
+    - name: "Host2"
+      address: "2.2.2.2"
       port: 80
   http:
-    - host: "https://google.com"
-    - host: "https://mail.ru"
+    - name: "Host1" # name of the host
+      address: "https://google.com" # address of the host
+    - name: "Host2"
+      address: "https://mail.ru"
+
+export:
+  mqtt: # username and password are stored in env: MQTT_USER and MQTT_PASS
+    - name: "local" # nickname of the mqtt broker
+      broker: "tcp://localhost:1883" # address
+      topic: "vps-monitoring" # topic
+      client_id: "lookut-connect" # client id of this instance
+      qos: 0 # qos, usually 0
+      retain: true # retain message, usually true
 
 schedule:
   interval: "4h" # time between runs

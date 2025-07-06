@@ -53,22 +53,23 @@ func (r *MonitoringResult) String() string {
 			}
 		}
 	}
-	if r.ConnectivityICMPError != nil {
-		builder.WriteString(fmt.Sprintf("Connectivity ICMP Error: %v\n", r.ConnectivityICMPError))
-	} else {
-		builder.WriteString("Connectivity ICMP:\n")
-		for _, status := range r.ConnectivityICMP {
-			builder.WriteString(fmt.Sprintf("\tICMP: %s, Status: %t, Latency: %s\n",
-				status.RemoteIP, status.Status, status.Latency))
+	builder.WriteString("Connectivity:\n")
+	for name, status := range r.Connectivity {
+		builder.WriteString(fmt.Sprintf("Connectivity for %s:\n", name))
+		builder.WriteString("\tTCP:\n")
+		for _, tcpStatus := range status.TCP {
+			builder.WriteString(fmt.Sprintf("\t\t%s: %s, Port: %d, Status: %t\n",
+				tcpStatus.Name, tcpStatus.RemoteIP, tcpStatus.Port, tcpStatus.Status))
 		}
-	}
-	if r.ConnectivityTCPError != nil {
-		builder.WriteString(fmt.Sprintf("Connectivity TCP Error: %v\n", r.ConnectivityTCPError))
-	} else {
-		builder.WriteString("Connectivity TCP:\n")
-		for _, status := range r.ConnectivityTCP {
-			builder.WriteString(fmt.Sprintf("\tTCP: %s, Port: %d, Status: %t\n",
-				status.RemoteIP, status.Port, status.Status))
+		builder.WriteString("\tICMP:\n")
+		for _, icmpStatus := range status.ICMP {
+			builder.WriteString(fmt.Sprintf("\t\t%s: %s, Status: %t, Latency: %s\n",
+				icmpStatus.Name, icmpStatus.RemoteIP, icmpStatus.Status, icmpStatus.Latency))
+		}
+		builder.WriteString("\tHTTP:\n")
+		for _, httpStatus := range status.HTTP {
+			builder.WriteString(fmt.Sprintf("\t\t%s: %s, Status: %t, Code: %d\n",
+				httpStatus.Name, httpStatus.Host, httpStatus.Status, httpStatus.Code))
 		}
 	}
 	builder.WriteString(fmt.Sprintf("Check Time: %s - %s (%f seconds)\n",
@@ -123,22 +124,19 @@ func (c *MonitoringConfig) PerformChecks(connConfig ConnectivityConfig) Monitori
 	defer client.Close()
 
 	log.Printf("[%s] Getting node name", c.NodeName)
-	result.NodeName, result.HostNameError = getNodeName(client)
+	result.NodeName, result.HostNameError = c.getNodeName(client)
 
 	log.Printf("[%s] Getting user name", c.NodeName)
-	result.UserName, result.UserNameError = getUserName(client)
+	result.UserName, result.UserNameError = c.getUserName(client)
 
 	log.Printf("[%s] Getting disk info", c.NodeName)
-	result.FreeSpace, result.TotalSpace, result.DiskUsage, result.DiskInfoError = getDiskInfo(client)
+	result.FreeSpace, result.TotalSpace, result.DiskUsage, result.DiskInfoError = c.getDiskInfo(client)
 
 	log.Printf("[%s] Getting login records", c.NodeName)
-	result.LoginRecords, result.LoginRecordsError = getLoginRecords(client)
+	result.LoginRecords, result.LoginRecordsError = c.getLoginRecords(client)
 
-	log.Printf("[%s] Getting connectivity (ICMP)", c.NodeName)
-	result.ConnectivityICMP, result.ConnectivityICMPError = getConnectivityICMP(client, connConfig.ICMP)
-
-	log.Printf("[%s] Getting connectivity (TCP)", c.NodeName)
-	result.ConnectivityTCP, result.ConnectivityTCPError = getConnectivityTCP(client, connConfig.TCP)
+	log.Printf("[%s] Getting connectivity", c.NodeName)
+	result.Connectivity, result.ConnectivityError = c.getConnectivity(client, connConfig.TCP, connConfig.ICMP, connConfig.HTTP)
 
 	result.CheckEndTime = time.Now()
 	result.CheckDuration = result.CheckEndTime.Sub(result.CheckStartTime)

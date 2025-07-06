@@ -12,51 +12,71 @@ import (
 )
 
 type MonitoringResult struct {
-	NodeCfgName           string
-	NodeName              string
-	UserName              string
-	FreeSpace             int64
-	TotalSpace            int64
-	DiskUsage             float64
-	LoginRecords          []UserLoginRecord
-	ConnectivityICMP      []ConnectivityStatusICMP
-	ConnectivityTCP       []ConnectivityStatusTCP
-	CheckStartTime        time.Time
-	CheckEndTime          time.Time
-	CheckDuration         time.Duration
-	SSHError              error
-	HostNameError         error
-	UserNameError         error
-	DiskInfoError         error
-	LoginRecordsError     error
-	ConnectivityICMPError error
-	ConnectivityTCPError  error
+	NodeCfgName           string                        `json:"node_cfg_name"`
+	NodeName              string                        `json:"hostname"`
+	UserName              string                        `json:"user"`
+	FreeSpace             int64                         `json:"free_space"`
+	TotalSpace            int64                         `json:"total_space"`
+	DiskUsage             float64                       `json:"disk_usage"`
+	LoginRecords          []UserLoginRecord             `json:"login_records"`
+	ConnectivityICMP      []ConnectivityStatusICMP      `json:"-"`
+	ConnectivityTCP       []ConnectivityStatusTCP       `json:"-"`
+	ConnectivityHTTP      []ConnectivityStatusHTTP      `json:"-"`
+	Connectivity          map[string]ConnectivityStatus `json:"connectivity"`
+	CheckStartTime        time.Time                     `json:"check_start_time"`
+	CheckEndTime          time.Time                     `json:"check_end_time"`
+	CheckDuration         time.Duration                 `json:"check_duration"`
+	SSHError              error                         `json:"ssh_error,omitempty"`
+	HostNameError         error                         `json:"host_name_error,omitempty"`
+	UserNameError         error                         `json:"user_name_error,omitempty"`
+	DiskInfoError         error                         `json:"disk_info_error,omitempty"`
+	LoginRecordsError     error                         `json:"login_records_error,omitempty"`
+	ConnectivityICMPError error                         `json:"connectivity_icmp_error,omitempty"`
+	ConnectivityTCPError  error                         `json:"connectivity_tcp_error,omitempty"`
+	ConnectivityHTTPError error                         `json:"connectivity_http_error,omitempty"`
+	ConnectivityError     error                         `json:"connectivity_error,omitempty"`
 }
 
 type ConnectivityStatusICMP struct {
-	RemoteIP string
-	Status   bool
-	Error    string
-	Latency  time.Duration
+	Name     string
+	RemoteIP string        `json:"remote_ip"`
+	Status   bool          `json:"status"`
+	Error    string        `json:"error,omitempty"`
+	Latency  time.Duration `json:"latency"`
 }
 
 type ConnectivityStatusTCP struct {
-	RemoteIP string
-	Port     int
-	Status   bool
+	Name     string
+	RemoteIP string `json:"remote_ip"`
+	Port     int    `json:"port"`
+	Status   bool   `json:"status"`
+}
+
+type ConnectivityStatusHTTP struct {
+	Name   string
+	Host   string `json:"host"`
+	Status bool   `json:"status"`
+	Code   int    `json:"code"`
+	Error  string `json:"error,omitempty"`
+}
+
+type ConnectivityStatus struct {
+	TCP  []ConnectivityStatusTCP  `json:"tcp,omitempty"`
+	ICMP []ConnectivityStatusICMP `json:"icmp,omitempty"`
+	HTTP []ConnectivityStatusHTTP `json:"http,omitempty"`
 }
 
 type UserLoginRecord struct {
-	UserName   string
-	Active     bool
-	IsRemote   bool
-	IP         string
-	Source     string
-	LoginTime  time.Time
-	LogoutTime time.Time
+	UserName   string    `json:"username"`
+	Active     bool      `json:"is_active"`
+	IsRemote   bool      `json:"is_remote"`
+	IP         string    `json:"ip"`
+	Source     string    `json:"source"`
+	LoginTime  time.Time `json:"login_time"`
+	LogoutTime time.Time `json:"logout_time"`
 }
 
-func getNodeName(client *ssh.Client) (string, error) {
+func (m *MonitoringConfig) getNodeName(client *ssh.Client) (string, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return "", fmt.Errorf("failed to create session: %v", err)
@@ -74,7 +94,7 @@ func getNodeName(client *ssh.Client) (string, error) {
 	return hostname, nil
 }
 
-func getUserName(client *ssh.Client) (string, error) {
+func (m *MonitoringConfig) getUserName(client *ssh.Client) (string, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return "", fmt.Errorf("failed to create session: %v", err)
@@ -92,7 +112,7 @@ func getUserName(client *ssh.Client) (string, error) {
 	return username, nil
 }
 
-func getDiskInfo(client *ssh.Client) (int64, int64, float64, error) {
+func (m *MonitoringConfig) getDiskInfo(client *ssh.Client) (int64, int64, float64, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed to create session: %v", err)
@@ -154,7 +174,7 @@ func parseHumanReadableSize(sizeStr string) (int64, error) {
 	return size * int64(multiplier), nil
 }
 
-func getLoginRecords(client *ssh.Client) ([]UserLoginRecord, error) {
+func (m *MonitoringConfig) getLoginRecords(client *ssh.Client) ([]UserLoginRecord, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %v", err)
@@ -240,21 +260,23 @@ func getLoginRecords(client *ssh.Client) ([]UserLoginRecord, error) {
 	return records, nil
 }
 
-func getConnectivityICMP(client *ssh.Client, addresses []string) ([]ConnectivityStatusICMP, error) {
+func (m *MonitoringConfig) getConnectivityICMP(client *ssh.Client, endpoints []ICMPEndpoint) ([]ConnectivityStatusICMP, error) {
 	statuses := []ConnectivityStatusICMP{}
 
-	for _, address := range addresses {
+	for _, endpoint := range endpoints {
+		log.Printf("[%s] Getting ICMP connectivity for %s", m.NodeName, endpoint.Name)
 		session, err := client.NewSession()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create session: %v", err)
 		}
 		defer session.Close()
 
-		rawPingData, err := session.CombinedOutput(fmt.Sprintf("ping -c 5 -W 1 %s", address))
+		rawPingData, err := session.CombinedOutput(fmt.Sprintf("ping -c 5 -W 1 %s", endpoint.Address))
 		if err != nil {
 			log.Printf("Failed to execute command: %v", err)
 			statuses = append(statuses, ConnectivityStatusICMP{
-				RemoteIP: address,
+				Name:     endpoint.Name,
+				RemoteIP: endpoint.Address,
 				Status:   false,
 				Error:    err.Error(),
 			})
@@ -294,13 +316,15 @@ func getConnectivityICMP(client *ssh.Client, addresses []string) ([]Connectivity
 		if count > 0 {
 			avgTime := totalTime / float64(count)
 			statuses = append(statuses, ConnectivityStatusICMP{
-				RemoteIP: address,
+				Name:     endpoint.Name,
+				RemoteIP: endpoint.Address,
 				Status:   true,
 				Latency:  time.Duration(avgTime) * time.Millisecond,
 			})
 		} else {
 			statuses = append(statuses, ConnectivityStatusICMP{
-				RemoteIP: address,
+				Name:     endpoint.Name,
+				RemoteIP: endpoint.Address,
 				Status:   false,
 				Latency:  0,
 			})
@@ -310,10 +334,11 @@ func getConnectivityICMP(client *ssh.Client, addresses []string) ([]Connectivity
 	return statuses, nil
 }
 
-func getConnectivityTCP(client *ssh.Client, endpoints []TCPEndpoint) ([]ConnectivityStatusTCP, error) {
+func (m *MonitoringConfig) getConnectivityTCP(client *ssh.Client, endpoints []TCPEndpoint) ([]ConnectivityStatusTCP, error) {
 	statuses := []ConnectivityStatusTCP{}
 
 	for _, endpoint := range endpoints {
+		log.Printf("[%s] Getting ICMP connectivity for %s", m.NodeName, endpoint.Name)
 		session, err := client.NewSession()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create session: %v", err)
@@ -325,12 +350,14 @@ func getConnectivityTCP(client *ssh.Client, endpoints []TCPEndpoint) ([]Connecti
 
 		if err == nil && strings.TrimSpace(string(output)) == "true" {
 			statuses = append(statuses, ConnectivityStatusTCP{
+				Name:     endpoint.Name,
 				RemoteIP: endpoint.Address,
 				Port:     endpoint.Port,
 				Status:   true,
 			})
 		} else {
 			statuses = append(statuses, ConnectivityStatusTCP{
+				Name:     endpoint.Name,
 				RemoteIP: endpoint.Address,
 				Port:     endpoint.Port,
 				Status:   false,
@@ -339,4 +366,102 @@ func getConnectivityTCP(client *ssh.Client, endpoints []TCPEndpoint) ([]Connecti
 	}
 
 	return statuses, nil
+}
+
+func (m *MonitoringConfig) getConnectivityHTTP(client *ssh.Client, endpoints []HTTPEndpoint) ([]ConnectivityStatusHTTP, error) {
+	statuses := []ConnectivityStatusHTTP{}
+
+	for _, endpoint := range endpoints {
+		log.Printf("[%s] Getting TCP connectivity for %s", m.NodeName, endpoint.Name)
+		session, err := client.NewSession()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create session: %v", err)
+		}
+		defer session.Close()
+		currentStatus := ConnectivityStatusHTTP{
+			Name:   endpoint.Name,
+			Host:   endpoint.Address,
+			Status: false,
+			Code:   0,
+			Error:  "",
+		}
+		cmd := fmt.Sprintf("curl -s -o /dev/null  --connect-timeout 5 --max-time 10 -w \"%%{http_code}\" %s", endpoint.Address)
+		output, err := session.CombinedOutput(cmd)
+		if err != nil {
+			currentStatus.Error = err.Error()
+			statuses = append(statuses, currentStatus)
+			continue
+		}
+
+		code, err := strconv.Atoi(strings.TrimSpace(string(output)))
+		if err != nil {
+			currentStatus.Error = err.Error()
+			statuses = append(statuses, currentStatus)
+			continue
+		}
+		currentStatus.Code = code
+		currentStatus.Status = true
+		statuses = append(statuses, currentStatus)
+	}
+	return statuses, nil
+}
+
+func (m *MonitoringConfig) getConnectivity(client *ssh.Client, tcpEndpoints []TCPEndpoint, icmpEndpoints []ICMPEndpoint, httpEndpoints []HTTPEndpoint) (map[string]ConnectivityStatus, error) {
+	log.Printf("[%s] Getting TCP connectivity", m.NodeName)
+	tcpStatuses, err := m.getConnectivityTCP(client, tcpEndpoints)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get TCP connectivity: %v", err)
+	}
+	log.Printf("[%s] Getting ICMP connectivity", m.NodeName)
+	icmpStatuses, err := m.getConnectivityICMP(client, icmpEndpoints)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ICMP connectivity: %v", err)
+	}
+	log.Printf("[%s] Getting HTTP connectivity", m.NodeName)
+	httpStatuses, err := m.getConnectivityHTTP(client, httpEndpoints)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get HTTP connectivity: %v", err)
+	}
+
+	connectivity := make(map[string]ConnectivityStatus)
+	for _, tcpStatus := range tcpStatuses {
+		currentConn, ok := connectivity[tcpStatus.Name]
+		if !ok {
+			currentConn = ConnectivityStatus{
+				TCP:  []ConnectivityStatusTCP{},
+				ICMP: []ConnectivityStatusICMP{},
+				HTTP: []ConnectivityStatusHTTP{},
+			}
+		}
+		currentConn.TCP = append(currentConn.TCP, tcpStatus)
+		connectivity[tcpStatus.Name] = currentConn
+	}
+
+	for _, icmpStatus := range icmpStatuses {
+		currentConn, ok := connectivity[icmpStatus.Name]
+		if !ok {
+			currentConn = ConnectivityStatus{
+				TCP:  []ConnectivityStatusTCP{},
+				ICMP: []ConnectivityStatusICMP{},
+				HTTP: []ConnectivityStatusHTTP{},
+			}
+		}
+		currentConn.ICMP = append(currentConn.ICMP, icmpStatus)
+		connectivity[icmpStatus.Name] = currentConn
+	}
+
+	for _, httpStatus := range httpStatuses {
+		currentConn, ok := connectivity[httpStatus.Name]
+		if !ok {
+			currentConn = ConnectivityStatus{
+				TCP:  []ConnectivityStatusTCP{},
+				ICMP: []ConnectivityStatusICMP{},
+				HTTP: []ConnectivityStatusHTTP{},
+			}
+		}
+		currentConn.HTTP = append(currentConn.HTTP, httpStatus)
+		connectivity[httpStatus.Name] = currentConn
+	}
+
+	return connectivity, nil
 }

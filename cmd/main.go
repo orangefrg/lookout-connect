@@ -19,15 +19,38 @@ func main() {
 
 func RunSchedule(config Config) {
 	log.Println("Running schedule!")
+	err := InitializeMQTTConnections(config.Export.MQTT)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize MQTT connections: %v", err)
+		return
+	}
 	InitChecks(config)
+	log.Println("Checks finished! Cleaning up...")
+	CleanupMQTTConnections(config.Export.MQTT)
+
 	timer := time.NewTicker(config.Schedule.Interval)
 	defer timer.Stop()
+	mtx := sync.Mutex{}
 	for range timer.C {
-		InitChecks(config)
+		if mtx.TryLock() {
+			err := InitializeMQTTConnections(config.Export.MQTT)
+			if err != nil {
+				log.Printf("Warning: Failed to initialize MQTT connections: %v", err)
+				mtx.Unlock()
+				continue
+			}
+			InitChecks(config)
+			log.Println("Checks finished! Cleaning up...")
+			CleanupMQTTConnections(config.Export.MQTT)
+			mtx.Unlock()
+		} else {
+			log.Println("Skipping schedule: last one haven't finished yet")
+			continue
+		}
 	}
 }
 
-func InitChecks(config Config) []MonitoringResult {
+func InitChecks(config Config) {
 	timer := time.NewTicker(config.Schedule.Splitter)
 	defer timer.Stop()
 	resultsChan := make(chan MonitoringResult)
@@ -48,17 +71,20 @@ func InitChecks(config Config) []MonitoringResult {
 	}
 
 	log.Printf("Waiting for results")
-	results := make([]MonitoringResult, 0)
 	go func() {
 		for i := 0; i < len(config.Nodes); i++ {
 			currentResult := <-resultsChan
 			log.Println("Received result")
-			results = append(results, currentResult)
-			log.Println(currentResult.String())
+			for _, mqtt := range config.Export.MQTT {
+				err := mqtt.SendResult(&currentResult)
+				if err != nil {
+					log.Printf("Warning: Failed to send result to MQTT %s: %v", mqtt.Name, err)
+				}
+			}
+			// log.Println(currentResult.ToJson())
 		}
 		close(resultsChan)
 	}()
 	wg.Wait()
-	log.Println("Results ready!")
-	return results
+	log.Println("Checks finished!")
 }
