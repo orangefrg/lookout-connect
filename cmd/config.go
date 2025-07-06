@@ -14,8 +14,19 @@ import (
 )
 
 type TCPEndpoint struct {
-	Address string
-	Port    int
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
+	Port    int    `yaml:"port"`
+}
+
+type ICMPEndpoint struct {
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
+}
+
+type HTTPEndpoint struct {
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
 }
 
 type MonitoringConfig struct {
@@ -27,8 +38,9 @@ type MonitoringConfig struct {
 }
 
 type ConnectivityConfig struct {
-	ICMP []string      `yaml:"icmp"`
-	TCP  []TCPEndpoint `yaml:"tcp"`
+	ICMP []ICMPEndpoint `yaml:"icmp"`
+	TCP  []TCPEndpoint  `yaml:"tcp"`
+	HTTP []HTTPEndpoint `yaml:"http"`
 }
 
 type ScheduleConfig struct {
@@ -38,9 +50,14 @@ type ScheduleConfig struct {
 	Splitter    time.Duration `yaml:"-"`
 }
 
+type ExportConfig struct {
+	MQTT []MqttConnection `yaml:"mqtt"`
+}
+
 type Config struct {
 	Nodes        []MonitoringConfig `yaml:"nodes"`
 	Connectivity ConnectivityConfig `yaml:"connectivity"`
+	Export       ExportConfig       `yaml:"export"`
 	Schedule     ScheduleConfig     `yaml:"schedule"`
 }
 
@@ -57,20 +74,76 @@ func (m *MonitoringConfig) String() string {
 	return sb.String()
 }
 
+func (e *ExportConfig) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("Export Config:\n")
+	for _, mqtt := range e.MQTT {
+		sb.WriteString(mqtt.String())
+	}
+	return sb.String()
+}
+
+func (m *MqttConnection) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("MQTT:\n")
+	sb.WriteString("Name: ")
+	sb.WriteString(m.Name)
+	sb.WriteString("\n")
+	sb.WriteString("Broker: ")
+	sb.WriteString(m.Broker)
+	sb.WriteString("\n")
+	sb.WriteString("Topic: ")
+	sb.WriteString(m.Topic)
+	sb.WriteString("\n")
+	sb.WriteString("ClientID: ")
+	sb.WriteString(m.ClientID)
+	sb.WriteString("\n")
+	sb.WriteString("Qos: ")
+	sb.WriteString(strconv.Itoa(m.Qos))
+	sb.WriteString("\n")
+	sb.WriteString("Retain: ")
+	sb.WriteString(strconv.FormatBool(m.Retain))
+	sb.WriteString("\n")
+	sb.WriteString("Username: ")
+	sb.WriteString(m.Username)
+	sb.WriteString("\n")
+	sb.WriteString("Password: ")
+	if len(m.Password) > 4 {
+		sb.WriteString(m.Password[:2] + "***" + m.Password[len(m.Password)-2:])
+	} else {
+		sb.WriteString("***")
+	}
+	sb.WriteString("\n")
+	return sb.String()
+}
 func (c *ConnectivityConfig) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("ConnectivityConfig:\n")
 	sb.WriteString("ICMP: \n")
-	sb.WriteString(strings.Join(c.ICMP, "\n"))
+	for _, icmp := range c.ICMP {
+		sb.WriteString(icmp.Name)
+		sb.WriteString(": ")
+		sb.WriteString(icmp.Address)
+		sb.WriteString("\n")
+	}
 	sb.WriteString("\n")
 	sb.WriteString("TCP:\n")
 	for _, tcp := range c.TCP {
+		sb.WriteString(tcp.Name)
+		sb.WriteString(": ")
 		sb.WriteString(tcp.Address)
 		sb.WriteString(":")
 		sb.WriteString(strconv.Itoa(tcp.Port))
 		sb.WriteString("\n")
 	}
 	sb.WriteString("\n")
+	sb.WriteString("HTTP:\n")
+	for _, http := range c.HTTP {
+		sb.WriteString(http.Name)
+		sb.WriteString(": ")
+		sb.WriteString(http.Address)
+		sb.WriteString("\n")
+	}
 	return sb.String()
 }
 
@@ -96,6 +169,8 @@ func (c *Config) String() string {
 	sb.WriteString(c.Connectivity.String())
 	sb.WriteString("\n---\n")
 	sb.WriteString(c.Schedule.String())
+	sb.WriteString("\n---\n")
+	sb.WriteString(c.Export.String())
 	sb.WriteString("\n")
 	return sb.String()
 }
@@ -138,19 +213,37 @@ func LoadConfig() (Config, error) {
 	}
 
 	for _, node := range config.Nodes {
-		nodeEndpoint := TCPEndpoint{
+		tcpEndpoint := TCPEndpoint{
+			Name:    node.NodeName,
 			Address: node.IP,
 			Port:    node.Port,
 		}
-		if slices.Contains(config.Connectivity.TCP, nodeEndpoint) {
+		if slices.Contains(config.Connectivity.TCP, tcpEndpoint) {
 			continue
 		}
-		config.Connectivity.TCP = append(config.Connectivity.TCP, nodeEndpoint)
+		config.Connectivity.TCP = append(config.Connectivity.TCP, tcpEndpoint)
 
-		if slices.Contains(config.Connectivity.ICMP, node.IP) {
+		icmpEndpoint := ICMPEndpoint{
+			Name:    node.NodeName,
+			Address: node.IP,
+		}
+		if slices.Contains(config.Connectivity.ICMP, icmpEndpoint) {
 			continue
 		}
-		config.Connectivity.ICMP = append(config.Connectivity.ICMP, node.IP)
+		config.Connectivity.ICMP = append(config.Connectivity.ICMP, icmpEndpoint)
+
+		httpEndpoint := HTTPEndpoint{
+			Name:    node.NodeName,
+			Address: fmt.Sprintf("https://%s", node.IP),
+		}
+		if slices.Contains(config.Connectivity.HTTP, httpEndpoint) {
+			continue
+		}
+		config.Connectivity.HTTP = append(config.Connectivity.HTTP, httpEndpoint)
+	}
+	for i := range len(config.Export.MQTT) {
+		config.Export.MQTT[i].Username = os.Getenv("MQTT_USER")
+		config.Export.MQTT[i].Password = os.Getenv("MQTT_PASS")
 	}
 
 	log.Printf("Config loaded successfully:\n%v", config.String())
