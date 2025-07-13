@@ -176,20 +176,9 @@ func (c *Config) String() string {
 }
 
 func LoadConfig() (Config, error) {
-	execPath, err := os.Executable()
-	if err != nil {
-		return Config{}, fmt.Errorf("failed to get executable path: %v", err)
-	}
-
-	execDir := filepath.Dir(execPath)
-	configPath := filepath.Join(execDir, "config.yaml")
+	configPath := filepath.Join("etc", "lookout-connect", "config.yaml")
 	if _, err := os.Stat(configPath); err != nil {
-		log.Printf("Config file not found, trying current working directory")
-		cwd, err := os.Getwd()
-		if err != nil {
-			return Config{}, fmt.Errorf("failed to get current working directory: %v", err)
-		}
-		configPath = filepath.Join(cwd, "config.yaml")
+		return Config{}, fmt.Errorf("config file not found: %v", err)
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -242,8 +231,8 @@ func LoadConfig() (Config, error) {
 		config.Connectivity.HTTP = append(config.Connectivity.HTTP, httpEndpoint)
 	}
 	for i := range len(config.Export.MQTT) {
-		config.Export.MQTT[i].Username = os.Getenv("MQTT_USER")
-		config.Export.MQTT[i].Password = os.Getenv("MQTT_PASS")
+		config.Export.MQTT[i].Username = os.Getenv("MQTT_USERNAME")
+		config.Export.MQTT[i].Password = os.Getenv("MQTT_PASSWORD")
 	}
 
 	log.Printf("Config loaded successfully:\n%v", config.String())

@@ -56,35 +56,32 @@ func InitChecks(config Config) {
 	resultsChan := make(chan MonitoringResult)
 	log.Printf("Starting checks")
 
-	wg := sync.WaitGroup{}
+	wgChecks := sync.WaitGroup{}
 	for i, node := range config.Nodes {
-		wg.Add(1)
+		wgChecks.Add(1)
 		if i != 0 {
 			<-timer.C
 			log.Println("Waiting for next node check")
 		}
 		go func(node MonitoringConfig) {
-			defer wg.Done()
+			defer wgChecks.Done()
 			currentResult := node.PerformChecks(config.Connectivity)
 			resultsChan <- currentResult
 		}(node)
 	}
 
 	log.Printf("Waiting for results")
-	go func() {
-		for i := 0; i < len(config.Nodes); i++ {
-			currentResult := <-resultsChan
-			log.Println("Received result")
-			for _, mqtt := range config.Export.MQTT {
-				err := mqtt.SendResult(&currentResult)
-				if err != nil {
-					log.Printf("Warning: Failed to send result to MQTT %s: %v", mqtt.Name, err)
-				}
+	for i := 0; i < len(config.Nodes); i++ {
+		currentResult := <-resultsChan
+		log.Println("Received result")
+		for _, mqtt := range config.Export.MQTT {
+			err := mqtt.SendResult(&currentResult)
+			if err != nil {
+				log.Printf("Warning: Failed to send result to MQTT %s: %v", mqtt.Name, err)
 			}
-			// log.Println(currentResult.ToJson())
 		}
-		close(resultsChan)
-	}()
-	wg.Wait()
+	}
+	close(resultsChan)
+	wgChecks.Wait()
 	log.Println("Checks finished!")
 }
