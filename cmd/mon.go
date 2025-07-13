@@ -73,7 +73,7 @@ func (r *MonitoringResult) String() string {
 		}
 	}
 	builder.WriteString(fmt.Sprintf("Check Time: %s - %s (%f seconds)\n",
-		r.CheckStartTime.Format(time.RFC3339), r.CheckEndTime.Format(time.RFC3339), r.CheckDuration.Seconds()))
+		r.CheckStartTime.Format(time.RFC3339), r.CheckEndTime.Format(time.RFC3339), r.CheckDuration))
 	return builder.String()
 }
 
@@ -139,6 +139,6 @@ func (c *MonitoringConfig) PerformChecks(connConfig ConnectivityConfig) Monitori
 	result.Connectivity, result.ConnectivityError = c.getConnectivity(client, connConfig.TCP, connConfig.ICMP, connConfig.HTTP)
 
 	result.CheckEndTime = time.Now()
-	result.CheckDuration = result.CheckEndTime.Sub(result.CheckStartTime)
+	result.CheckDuration = result.CheckEndTime.Sub(result.CheckStartTime).Seconds()
 	return result
 }

@@ -25,7 +25,7 @@ type MonitoringResult struct {
 	Connectivity          map[string]ConnectivityStatus `json:"connectivity"`
 	CheckStartTime        time.Time                     `json:"check_start_time"`
 	CheckEndTime          time.Time                     `json:"check_end_time"`
-	CheckDuration         time.Duration                 `json:"check_duration"`
+	CheckDuration         float64                       `json:"check_duration"`
 	SSHError              error                         `json:"ssh_error,omitempty"`
 	HostNameError         error                         `json:"host_name_error,omitempty"`
 	UserNameError         error                         `json:"user_name_error,omitempty"`

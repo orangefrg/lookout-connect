@@ -23,6 +23,7 @@ go.work
 # Build output
 bin/
 dist/
+*.tar
 
 # Environment files
 .env
@@ -58,3 +59,5 @@ coverage.html
 coverage.*
 *.coverprofile
 profile.cov
+
+config.yaml

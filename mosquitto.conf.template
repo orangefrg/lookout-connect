@@ -1,0 +1,12 @@
+# mosquitto.conf.template
+
+persistence true
+persistence_location /mosquitto/data/
+
+log_dest stdout
+
+listener 1883 {{BIND_ADDRESS}}
+
+allow_anonymous false
+
+password_file /mosquitto/config/passwd
