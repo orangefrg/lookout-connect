@@ -1,0 +1,461 @@
+  - type: sections
+    max_columns: 4
+    icon: mdi:lan-pending
+    path: vps
+    title: VPS
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: New Zomro
+            heading_style: title
+          - type: entities
+            entities:
+              - entity: sensor.lookout_new-zomro_disk_usage
+                name: Disk usage
+                secondary_info: last-changed
+              - entity: sensor.lookout_new-zomro_last_check_duration
+                secondary_info: last-updated
+                icon: mdi:progress-clock
+                name: Last Check
+              - entity: sensor.lookout_new-zomro_hostname
+                icon: mdi:badge-account-horizontal-outline
+                name: Hostname
+          - type: entities
+            entities:
+              - entity: sensor.interconnect_lookout_new-zomro_to_vpn-zomro_icmp
+                name: Vpn Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_vpn-zomro_tcp
+                name: Vpn Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_ruvds_icmp
+                name: Ruvds (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_ruvds_tcp
+                name: Ruvds (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_rachun_icmp
+                name: Rachun (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_rachun_tcp
+                name: Rachun (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_hetzner_icmp
+                name: Hetzner (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_new-zomro_to_hetzner_tcp
+                name: Hetzner (TCP)
+                secondary_info: last-changed
+          - type: markdown
+            title: Connectivity (New Zomro)
+            content: >-
+              {% set conn = state_attr('sensor.lookout_new-zomro_login_records', 'connectivity') or %{} %}
+              {% if conn %}
+              {% for host, checks in conn.items() %}
+              **{{ host | trim }}**
+                {%- if 'http' in checks %}
+              
+                  - HTTP:
+                    {%- for test in checks.http %}
+                      {{ '✅ ' ~ test.code if test.status and test.code < 400 else '❌ DOWN' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'icmp' in checks %}
+              
+                  - ICMP:
+                    {%- for test in checks.icmp %}
+                      {{ '✅ OK' if test.status else '❌ FAIL' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'tcp' in checks %}
+              
+                  - TCP:
+                    {%- for test in checks.tcp %}
+                      {{ test.port }} {{ '✅' if test.status else '❌' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+              {% endfor %}
+              {% else %}
+              No connectivity data available.
+              {% endif %}
+          - type: markdown
+            title: Login Records (New Zomro)
+            content: >-
+              {% set logins = state_attr('sensor.lookout_new-zomro_login_records', 'login_records') or [] %}
+              {% if logins %}
+              **Recent logins (up to 5):**
+              {% set count = 0 %}
+              {% for l in logins | sort(attribute='login_time', reverse=True) %}
+                {% if count < 5 %}
+              - {{ l.username }} ({{ l.ip or 'local' }}) — {{ l.login_time }} → {{ l.logout_time }}
+                  {% set count = count + 1 %}
+                {% endif %}
+              {% endfor %}
+              {% else %}
+              No login data available.
+              {% endif %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Vpn Zomro
+            heading_style: title
+          - type: entities
+            entities:
+              - entity: sensor.lookout_vpn-zomro_disk_usage
+                name: Disk usage
+                secondary_info: last-changed
+              - entity: sensor.lookout_vpn-zomro_last_check_duration
+                secondary_info: last-updated
+                icon: mdi:progress-clock
+                name: Last Check
+              - entity: sensor.lookout_vpn-zomro_hostname
+                icon: mdi:badge-account-horizontal-outline
+                name: Hostname
+          - type: entities
+            entities:
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_new-zomro_icmp
+                name: New Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_new-zomro_tcp
+                name: New Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_ruvds_icmp
+                name: Ruvds (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_ruvds_tcp
+                name: Ruvds (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_rachun_icmp
+                name: Rachun (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_rachun_tcp
+                name: Rachun (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_hetzner_icmp
+                name: Hetzner (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_vpn-zomro_to_hetzner_tcp
+                name: Hetzner (TCP)
+                secondary_info: last-changed
+          - type: markdown
+            title: Connectivity (Vpn Zomro)
+            content: >-
+              {% set conn = state_attr('sensor.lookout_vpn-zomro_login_records', 'connectivity') or %{} %}
+              {% if conn %}
+              {% for host, checks in conn.items() %}
+              **{{ host | trim }}**
+                {%- if 'http' in checks %}
+              
+                  - HTTP:
+                    {%- for test in checks.http %}
+                      {{ '✅ ' ~ test.code if test.status and test.code < 400 else '❌ DOWN' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'icmp' in checks %}
+              
+                  - ICMP:
+                    {%- for test in checks.icmp %}
+                      {{ '✅ OK' if test.status else '❌ FAIL' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'tcp' in checks %}
+              
+                  - TCP:
+                    {%- for test in checks.tcp %}
+                      {{ test.port }} {{ '✅' if test.status else '❌' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+              {% endfor %}
+              {% else %}
+              No connectivity data available.
+              {% endif %}
+          - type: markdown
+            title: Login Records (Vpn Zomro)
+            content: >-
+              {% set logins = state_attr('sensor.lookout_vpn-zomro_login_records', 'login_records') or [] %}
+              {% if logins %}
+              **Recent logins (up to 5):**
+              {% set count = 0 %}
+              {% for l in logins | sort(attribute='login_time', reverse=True) %}
+                {% if count < 5 %}
+              - {{ l.username }} ({{ l.ip or 'local' }}) — {{ l.login_time }} → {{ l.logout_time }}
+                  {% set count = count + 1 %}
+                {% endif %}
+              {% endfor %}
+              {% else %}
+              No login data available.
+              {% endif %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Ruvds
+            heading_style: title
+          - type: entities
+            entities:
+              - entity: sensor.lookout_ruvds_disk_usage
+                name: Disk usage
+                secondary_info: last-changed
+              - entity: sensor.lookout_ruvds_last_check_duration
+                secondary_info: last-updated
+                icon: mdi:progress-clock
+                name: Last Check
+              - entity: sensor.lookout_ruvds_hostname
+                icon: mdi:badge-account-horizontal-outline
+                name: Hostname
+          - type: entities
+            entities:
+              - entity: sensor.interconnect_lookout_ruvds_to_new-zomro_icmp
+                name: New Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_new-zomro_tcp
+                name: New Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_vpn-zomro_icmp
+                name: Vpn Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_vpn-zomro_tcp
+                name: Vpn Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_rachun_icmp
+                name: Rachun (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_rachun_tcp
+                name: Rachun (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_hetzner_icmp
+                name: Hetzner (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_ruvds_to_hetzner_tcp
+                name: Hetzner (TCP)
+                secondary_info: last-changed
+          - type: markdown
+            title: Connectivity (Ruvds)
+            content: >-
+              {% set conn = state_attr('sensor.lookout_ruvds_login_records', 'connectivity') or %{} %}
+              {% if conn %}
+              {% for host, checks in conn.items() %}
+              **{{ host | trim }}**
+                {%- if 'http' in checks %}
+              
+                  - HTTP:
+                    {%- for test in checks.http %}
+                      {{ '✅ ' ~ test.code if test.status and test.code < 400 else '❌ DOWN' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'icmp' in checks %}
+              
+                  - ICMP:
+                    {%- for test in checks.icmp %}
+                      {{ '✅ OK' if test.status else '❌ FAIL' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'tcp' in checks %}
+              
+                  - TCP:
+                    {%- for test in checks.tcp %}
+                      {{ test.port }} {{ '✅' if test.status else '❌' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+              {% endfor %}
+              {% else %}
+              No connectivity data available.
+              {% endif %}
+          - type: markdown
+            title: Login Records (Ruvds)
+            content: >-
+              {% set logins = state_attr('sensor.lookout_ruvds_login_records', 'login_records') or [] %}
+              {% if logins %}
+              **Recent logins (up to 5):**
+              {% set count = 0 %}
+              {% for l in logins | sort(attribute='login_time', reverse=True) %}
+                {% if count < 5 %}
+              - {{ l.username }} ({{ l.ip or 'local' }}) — {{ l.login_time }} → {{ l.logout_time }}
+                  {% set count = count + 1 %}
+                {% endif %}
+              {% endfor %}
+              {% else %}
+              No login data available.
+              {% endif %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rachun
+            heading_style: title
+          - type: entities
+            entities:
+              - entity: sensor.lookout_rachun_disk_usage
+                name: Disk usage
+                secondary_info: last-changed
+              - entity: sensor.lookout_rachun_last_check_duration
+                secondary_info: last-updated
+                icon: mdi:progress-clock
+                name: Last Check
+              - entity: sensor.lookout_rachun_hostname
+                icon: mdi:badge-account-horizontal-outline
+                name: Hostname
+          - type: entities
+            entities:
+              - entity: sensor.interconnect_lookout_rachun_to_new-zomro_icmp
+                name: New Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_new-zomro_tcp
+                name: New Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_vpn-zomro_icmp
+                name: Vpn Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_vpn-zomro_tcp
+                name: Vpn Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_ruvds_icmp
+                name: Ruvds (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_ruvds_tcp
+                name: Ruvds (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_hetzner_icmp
+                name: Hetzner (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_rachun_to_hetzner_tcp
+                name: Hetzner (TCP)
+                secondary_info: last-changed
+          - type: markdown
+            title: Connectivity (Rachun)
+            content: >-
+              {% set conn = state_attr('sensor.lookout_rachun_login_records', 'connectivity') or %{} %}
+              {% if conn %}
+              {% for host, checks in conn.items() %}
+              **{{ host | trim }}**
+                {%- if 'http' in checks %}
+              
+                  - HTTP:
+                    {%- for test in checks.http %}
+                      {{ '✅ ' ~ test.code if test.status and test.code < 400 else '❌ DOWN' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'icmp' in checks %}
+              
+                  - ICMP:
+                    {%- for test in checks.icmp %}
+                      {{ '✅ OK' if test.status else '❌ FAIL' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'tcp' in checks %}
+              
+                  - TCP:
+                    {%- for test in checks.tcp %}
+                      {{ test.port }} {{ '✅' if test.status else '❌' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+              {% endfor %}
+              {% else %}
+              No connectivity data available.
+              {% endif %}
+          - type: markdown
+            title: Login Records (Rachun)
+            content: >-
+              {% set logins = state_attr('sensor.lookout_rachun_login_records', 'login_records') or [] %}
+              {% if logins %}
+              **Recent logins (up to 5):**
+              {% set count = 0 %}
+              {% for l in logins | sort(attribute='login_time', reverse=True) %}
+                {% if count < 5 %}
+              - {{ l.username }} ({{ l.ip or 'local' }}) — {{ l.login_time }} → {{ l.logout_time }}
+                  {% set count = count + 1 %}
+                {% endif %}
+              {% endfor %}
+              {% else %}
+              No login data available.
+              {% endif %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Hetzner
+            heading_style: title
+          - type: entities
+            entities:
+              - entity: sensor.lookout_hetzner_disk_usage
+                name: Disk usage
+                secondary_info: last-changed
+              - entity: sensor.lookout_hetzner_last_check_duration
+                secondary_info: last-updated
+                icon: mdi:progress-clock
+                name: Last Check
+              - entity: sensor.lookout_hetzner_hostname
+                icon: mdi:badge-account-horizontal-outline
+                name: Hostname
+          - type: entities
+            entities:
+              - entity: sensor.interconnect_lookout_hetzner_to_new-zomro_icmp
+                name: New Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_new-zomro_tcp
+                name: New Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_vpn-zomro_icmp
+                name: Vpn Zomro (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_vpn-zomro_tcp
+                name: Vpn Zomro (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_ruvds_icmp
+                name: Ruvds (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_ruvds_tcp
+                name: Ruvds (TCP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_rachun_icmp
+                name: Rachun (ICMP)
+                secondary_info: last-changed
+              - entity: sensor.interconnect_lookout_hetzner_to_rachun_tcp
+                name: Rachun (TCP)
+                secondary_info: last-changed
+          - type: markdown
+            title: Connectivity (Hetzner)
+            content: >-
+              {% set conn = state_attr('sensor.lookout_hetzner_login_records', 'connectivity') or %{} %}
+              {% if conn %}
+              {% for host, checks in conn.items() %}
+              **{{ host | trim }}**
+                {%- if 'http' in checks %}
+              
+                  - HTTP:
+                    {%- for test in checks.http %}
+                      {{ '✅ ' ~ test.code if test.status and test.code < 400 else '❌ DOWN' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'icmp' in checks %}
+              
+                  - ICMP:
+                    {%- for test in checks.icmp %}
+                      {{ '✅ OK' if test.status else '❌ FAIL' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+                {%- if 'tcp' in checks %}
+              
+                  - TCP:
+                    {%- for test in checks.tcp %}
+                      {{ test.port }} {{ '✅' if test.status else '❌' }}{{ ',' if not loop.last else '' }}
+                    {%- endfor %}
+                {%- endif %}
+              {% endfor %}
+              {% else %}
+              No connectivity data available.
+              {% endif %}
+          - type: markdown
+            title: Login Records (Hetzner)
+            content: >-
+              {% set logins = state_attr('sensor.lookout_hetzner_login_records', 'login_records') or [] %}
+              {% if logins %}
+              **Recent logins (up to 5):**
+              {% set count = 0 %}
+              {% for l in logins | sort(attribute='login_time', reverse=True) %}
+                {% if count < 5 %}
+              - {{ l.username }} ({{ l.ip or 'local' }}) — {{ l.login_time }} → {{ l.logout_time }}
+                  {% set count = count + 1 %}
+                {% endif %}
+              {% endfor %}
+              {% else %}
+              No login data available.
+              {% endif %}

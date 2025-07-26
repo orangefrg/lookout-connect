@@ -67,12 +67,25 @@ for i in $(seq 0 $((NODES_COUNT - 1))); do
   PORT=$(yq e ".nodes[$i].port" "$CONFIG_YAML")
 
   echo " - $NAME ($IP:$PORT)..."
-  ssh-keyscan -p "$PORT" -H "$IP" >> "$KNOWN_HOSTS_TMP" 2>/dev/null
+  
+  # Check if host is already in known_hosts
+  if [ -f "$SSH_DIR/known_hosts" ] && grep -q "$IP" "$SSH_DIR/known_hosts"; then
+    echo "    Host $IP already in known_hosts, skipping..."
+  else
+    ssh-keyscan -p "$PORT" -H "$IP" >> "$KNOWN_HOSTS_TMP" 2>/dev/null
+  fi
 done
 
-# Copy known_hosts
-echo "Deploying known_hosts..."
-cp "$KNOWN_HOSTS_TMP" "$SSH_DIR/known_hosts"
+# Merge with existing known_hosts if it exists
+if [ -f "$SSH_DIR/known_hosts" ]; then
+  echo "Merging with existing known_hosts..."
+  cat "$SSH_DIR/known_hosts" "$KNOWN_HOSTS_TMP" | sort -u > "$SSH_DIR/known_hosts.new"
+  mv "$SSH_DIR/known_hosts.new" "$SSH_DIR/known_hosts"
+else
+  echo "Creating new known_hosts..."
+  cp "$KNOWN_HOSTS_TMP" "$SSH_DIR/known_hosts"
+fi
+
 chmod 644 "$SSH_DIR/known_hosts"
 rm -f "$KNOWN_HOSTS_TMP"
 
@@ -87,8 +100,16 @@ echo "Copying id_rsa..."
 cp "$ID_RSA_PATH" "$SSH_DIR/id_rsa_lookout-connect"
 chmod 600 "$SSH_DIR/id_rsa_lookout-connect"
 
-# Stop old containers
-docker compose down || true
+# Stop and remove old containers
+echo "Stopping and removing old containers..."
+docker compose down --remove-orphans || true
+
+# Remove any existing containers with the same name
+CONTAINER_NAME=$(docker compose ps -q 2>/dev/null || echo "")
+if [ -n "$CONTAINER_NAME" ]; then
+  echo "Removing existing containers..."
+  docker compose rm -f || true
+fi
 
 # Start containers
 echo "Starting deployment..."

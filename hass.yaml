@@ -1,0 +1,538 @@
+mqtt:
+  sensor:
+
+    # new-zomro
+    - name: "Lookout: new-zomro Last Check Time"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.last_check_time }}"
+      icon: mdi:clock-outline
+
+    - name: "Lookout: new-zomro Hostname"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.hostname }}"
+
+    - name: "Lookout: new-zomro User"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.user }}"
+    
+    - name: "Lookout: new-zomro Disk Usage"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.disk_usage }}"
+      unit_of_measurement: "%"
+      icon: mdi:harddisk
+
+    - name: "Lookout: new-zomro Free Space"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ (value_json.free_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: new-zomro Total Space"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ (value_json.total_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: new-zomro Last Check Duration"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.check_duration | round(1) }}"
+      unit_of_measurement: "s"
+
+    - name: "Lookout: new-zomro Login Records"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% if recs | length > 0 %}
+          {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+          {{ sorted[0].login_time }}
+        {% else %}
+          unknown
+        {% endif %}
+      json_attributes_topic: "vps-monitoring/new-zomro"
+      json_attributes_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+        {% set ns = namespace(items=[]) %}
+        {% for r in sorted %}
+          {% if loop.index <= 10 %}
+            {% set ns.items = ns.items + [r] %}
+          {% endif %}
+        {% endfor %}
+
+        {% set conn = value_json.connectivity | default({}) %}
+        {% if conn is not mapping %}
+          {% set conn = {} %}
+        {% endif %}
+
+        {{ {"login_records": ns.items, "connectivity": conn} | tojson }}
+
+    - name: "Lookout: new-zomro Connectivity"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity }}"
+
+    - name: "Interconnect Lookout: new-zomro to vpn-zomro (TCP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.vpn-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: new-zomro to vpn-zomro (ICMP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.vpn-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: new-zomro to ruvds (TCP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.ruvds.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: new-zomro to ruvds (ICMP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.ruvds.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: new-zomro to rachun (TCP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.rachun.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: new-zomro to rachun (ICMP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.rachun.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: new-zomro to hetzner (TCP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.hetzner.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: new-zomro to hetzner (ICMP)"
+      state_topic: "vps-monitoring/new-zomro"
+      value_template: "{{ value_json.connectivity.hetzner.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    # vpn-zomro
+    - name: "Lookout: vpn-zomro Last Check Time"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.last_check_time }}"
+      icon: mdi:clock-outline
+
+    - name: "Lookout: vpn-zomro Hostname"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.hostname }}"
+
+    - name: "Lookout: vpn-zomro User"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.user }}"
+    
+    - name: "Lookout: vpn-zomro Disk Usage"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.disk_usage }}"
+      unit_of_measurement: "%"
+      icon: mdi:harddisk
+
+    - name: "Lookout: vpn-zomro Free Space"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ (value_json.free_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: vpn-zomro Total Space"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ (value_json.total_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: vpn-zomro Last Check Duration"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.check_duration | round(1) }}"
+      unit_of_measurement: "s"
+
+    - name: "Lookout: vpn-zomro Login Records"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% if recs | length > 0 %}
+          {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+          {{ sorted[0].login_time }}
+        {% else %}
+          unknown
+        {% endif %}
+      json_attributes_topic: "vps-monitoring/vpn-zomro"
+      json_attributes_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+        {% set ns = namespace(items=[]) %}
+        {% for r in sorted %}
+          {% if loop.index <= 10 %}
+            {% set ns.items = ns.items + [r] %}
+          {% endif %}
+        {% endfor %}
+
+        {% set conn = value_json.connectivity | default({}) %}
+        {% if conn is not mapping %}
+          {% set conn = {} %}
+        {% endif %}
+
+        {{ {"login_records": ns.items, "connectivity": conn} | tojson }}
+
+    - name: "Lookout: vpn-zomro Connectivity"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity }}"
+
+    - name: "Interconnect Lookout: vpn-zomro to new-zomro (TCP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.new-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: vpn-zomro to new-zomro (ICMP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.new-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: vpn-zomro to ruvds (TCP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.ruvds.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: vpn-zomro to ruvds (ICMP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.ruvds.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: vpn-zomro to rachun (TCP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.rachun.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: vpn-zomro to rachun (ICMP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.rachun.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: vpn-zomro to hetzner (TCP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.hetzner.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: vpn-zomro to hetzner (ICMP)"
+      state_topic: "vps-monitoring/vpn-zomro"
+      value_template: "{{ value_json.connectivity.hetzner.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    # ruvds
+    - name: "Lookout: ruvds Last Check Time"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.last_check_time }}"
+      icon: mdi:clock-outline
+
+    - name: "Lookout: ruvds Hostname"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.hostname }}"
+
+    - name: "Lookout: ruvds User"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.user }}"
+    
+    - name: "Lookout: ruvds Disk Usage"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.disk_usage }}"
+      unit_of_measurement: "%"
+      icon: mdi:harddisk
+
+    - name: "Lookout: ruvds Free Space"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ (value_json.free_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: ruvds Total Space"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ (value_json.total_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: ruvds Last Check Duration"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.check_duration | round(1) }}"
+      unit_of_measurement: "s"
+
+    - name: "Lookout: ruvds Login Records"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% if recs | length > 0 %}
+          {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+          {{ sorted[0].login_time }}
+        {% else %}
+          unknown
+        {% endif %}
+      json_attributes_topic: "vps-monitoring/ruvds"
+      json_attributes_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+        {% set ns = namespace(items=[]) %}
+        {% for r in sorted %}
+          {% if loop.index <= 10 %}
+            {% set ns.items = ns.items + [r] %}
+          {% endif %}
+        {% endfor %}
+
+        {% set conn = value_json.connectivity | default({}) %}
+        {% if conn is not mapping %}
+          {% set conn = {} %}
+        {% endif %}
+
+        {{ {"login_records": ns.items, "connectivity": conn} | tojson }}
+
+    - name: "Lookout: ruvds Connectivity"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity }}"
+
+    - name: "Interconnect Lookout: ruvds to new-zomro (TCP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.new-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: ruvds to new-zomro (ICMP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.new-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: ruvds to vpn-zomro (TCP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.vpn-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: ruvds to vpn-zomro (ICMP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.vpn-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: ruvds to rachun (TCP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.rachun.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: ruvds to rachun (ICMP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.rachun.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: ruvds to hetzner (TCP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.hetzner.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: ruvds to hetzner (ICMP)"
+      state_topic: "vps-monitoring/ruvds"
+      value_template: "{{ value_json.connectivity.hetzner.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    # rachun
+    - name: "Lookout: rachun Last Check Time"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.last_check_time }}"
+      icon: mdi:clock-outline
+
+    - name: "Lookout: rachun Hostname"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.hostname }}"
+
+    - name: "Lookout: rachun User"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.user }}"
+    
+    - name: "Lookout: rachun Disk Usage"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.disk_usage }}"
+      unit_of_measurement: "%"
+      icon: mdi:harddisk
+
+    - name: "Lookout: rachun Free Space"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ (value_json.free_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: rachun Total Space"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ (value_json.total_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: rachun Last Check Duration"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.check_duration | round(1) }}"
+      unit_of_measurement: "s"
+
+    - name: "Lookout: rachun Login Records"
+      state_topic: "vps-monitoring/rachun"
+      value_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% if recs | length > 0 %}
+          {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+          {{ sorted[0].login_time }}
+        {% else %}
+          unknown
+        {% endif %}
+      json_attributes_topic: "vps-monitoring/rachun"
+      json_attributes_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+        {% set ns = namespace(items=[]) %}
+        {% for r in sorted %}
+          {% if loop.index <= 10 %}
+            {% set ns.items = ns.items + [r] %}
+          {% endif %}
+        {% endfor %}
+
+        {% set conn = value_json.connectivity | default({}) %}
+        {% if conn is not mapping %}
+          {% set conn = {} %}
+        {% endif %}
+
+        {{ {"login_records": ns.items, "connectivity": conn} | tojson }}
+
+    - name: "Lookout: rachun Connectivity"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity }}"
+
+    - name: "Interconnect Lookout: rachun to new-zomro (TCP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.new-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: rachun to new-zomro (ICMP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.new-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: rachun to vpn-zomro (TCP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.vpn-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: rachun to vpn-zomro (ICMP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.vpn-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: rachun to ruvds (TCP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.ruvds.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: rachun to ruvds (ICMP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.ruvds.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: rachun to hetzner (TCP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.hetzner.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: rachun to hetzner (ICMP)"
+      state_topic: "vps-monitoring/rachun"
+      value_template: "{{ value_json.connectivity.hetzner.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    # hetzner
+    - name: "Lookout: hetzner Last Check Time"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.last_check_time }}"
+      icon: mdi:clock-outline
+
+    - name: "Lookout: hetzner Hostname"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.hostname }}"
+
+    - name: "Lookout: hetzner User"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.user }}"
+    
+    - name: "Lookout: hetzner Disk Usage"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.disk_usage }}"
+      unit_of_measurement: "%"
+      icon: mdi:harddisk
+
+    - name: "Lookout: hetzner Free Space"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ (value_json.free_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: hetzner Total Space"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ (value_json.total_space | float / 1024 / 1024 / 1024) | round(1) }}"
+      unit_of_measurement: "GB"
+
+    - name: "Lookout: hetzner Last Check Duration"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.check_duration | round(1) }}"
+      unit_of_measurement: "s"
+
+    - name: "Lookout: hetzner Login Records"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% if recs | length > 0 %}
+          {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+          {{ sorted[0].login_time }}
+        {% else %}
+          unknown
+        {% endif %}
+      json_attributes_topic: "vps-monitoring/hetzner"
+      json_attributes_template: >
+        {% set recs = value_json.login_records | default([]) %}
+        {% set sorted = recs | sort(attribute='login_time', reverse=True) %}
+        {% set ns = namespace(items=[]) %}
+        {% for r in sorted %}
+          {% if loop.index <= 10 %}
+            {% set ns.items = ns.items + [r] %}
+          {% endif %}
+        {% endfor %}
+
+        {% set conn = value_json.connectivity | default({}) %}
+        {% if conn is not mapping %}
+          {% set conn = {} %}
+        {% endif %}
+
+        {{ {"login_records": ns.items, "connectivity": conn} | tojson }}
+
+    - name: "Lookout: hetzner Connectivity"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity }}"
+
+    - name: "Interconnect Lookout: hetzner to new-zomro (TCP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.new-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: hetzner to new-zomro (ICMP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.new-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: hetzner to vpn-zomro (TCP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.vpn-zomro.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: hetzner to vpn-zomro (ICMP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.vpn-zomro.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: hetzner to ruvds (TCP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.ruvds.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: hetzner to ruvds (ICMP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.ruvds.icmp[0].status }}"
+      icon: mdi:lan-connect
+
+    - name: "Interconnect Lookout: hetzner to rachun (TCP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.rachun.tcp[0].status }}"
+      icon: mdi:lan-connect
+      
+    - name: "Interconnect Lookout: hetzner to rachun (ICMP)"
+      state_topic: "vps-monitoring/hetzner"
+      value_template: "{{ value_json.connectivity.rachun.icmp[0].status }}"
+      icon: mdi:lan-connect
+

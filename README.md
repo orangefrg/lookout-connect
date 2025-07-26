@@ -20,10 +20,11 @@
 #### Running
 
 Ensure you have those files:
+- `deploy.sh` — main script for deployment
 - `.env` — you can make one from template
 - `config.yaml` — you can make one from template, it's pretty self-explanatory
 - `docker-compose.yml` — pay attention to logging settings
-- `entrypoint.sh`
+- `entrypoint.sh` — entrypoint for container
 - `lookout-mosquitto.tar` — in case you haven't loaded it yet
 
 Then generate an ssh key:
